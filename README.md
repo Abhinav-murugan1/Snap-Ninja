@@ -49,8 +49,25 @@ macOS/Linux workflows have not been verified. Local validation used Windows and 
 1. Install [Python](https://www.python.org/downloads/) (3.10+; 3.13 was tested).
 2. Install [FFmpeg](https://ffmpeg.org/download.html). Put both `ffmpeg` and `ffprobe` on PATH.
 3. Download this repository as a ZIP and extract it, or clone it with Git.
-4. Open the extracted folder and run `run.bat`.
-5. Visit **http://127.0.0.1:7860** and follow **Setup guide**.
+4. Open the extracted folder and double-click **`run.bat`**. On the first launch,
+   wait for it to create `.venv` and install the Python dependencies. Keep its terminal open.
+5. The launcher opens **http://127.0.0.1:7860** in your browser. If the page opens before
+   setup finishes, wait for the server to start, then refresh. Follow **Setup guide**.
+6. For a desktop app window, close the browser launcher with **Ctrl+C** in its terminal
+   after any active jobs finish, then double-click **`make_shortcuts.bat`**.
+   Open **Snap Ninja** from your desktop or Start menu.
+
+**Which file do I run?**
+
+| Task | Run |
+| --- | --- |
+| Install dependencies and launch in a browser | `run.bat` |
+| Create desktop and Start menu shortcuts after setup | `make_shortcuts.bat` |
+| Open the desktop app after creating shortcuts | The **Snap Ninja** shortcut |
+| Use the browser again on later launches | `run.bat` |
+
+Snap Ninja currently runs from its extracted source folder; there is no standalone
+installer or packaged `.exe`. Keep the folder in place so its shortcuts continue to work.
 
 The launcher creates `.venv` and installs the base dependencies on its first run.
 It needs internet access and can take several minutes. An NVIDIA GPU and Ollama are

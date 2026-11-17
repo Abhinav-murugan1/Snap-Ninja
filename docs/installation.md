@@ -30,8 +30,28 @@ have not been verified. `desktop.py` and the shortcut scripts target Windows.
    ```
 
 4. Clone the public repository, or choose GitHub's **Code → Download ZIP** and extract it.
-5. Run `run.bat` from the extracted project folder. Keep the console running.
-6. Open http://127.0.0.1:7860 and follow **Setup guide**.
+5. Double-click **`run.bat`** from the extracted project folder. Wait for dependency
+   installation to finish and keep the console running while using the browser app.
+6. The launcher opens http://127.0.0.1:7860. If the browser opens before the server
+   is ready, refresh after setup finishes. Follow **Setup guide**.
+
+There is no separate installer or packaged `.exe` at present. `run.bat` performs
+the initial Python dependency setup and starts the app; Python and FFmpeg must
+already be installed. Extract the ZIP before running it and keep the project folder
+in a permanent location if you plan to create shortcuts.
+
+## Which file should I open?
+
+| Goal | What to open |
+| --- | --- |
+| First-time setup | `run.bat` |
+| Start the browser version again | `run.bat` |
+| Create Windows shortcuts after the initial setup | `make_shortcuts.bat` |
+| Launch the desktop window | The **Snap Ninja** desktop or Start menu shortcut |
+
+To switch from the browser launcher to the desktop app, finish active jobs, then
+press **Ctrl+C** in the launcher's terminal. Run `make_shortcuts.bat` and open the
+new shortcut. Later, you can open that shortcut directly without running `run.bat`.
 
 The first run installs the base Python dependencies inside `.venv`. It does not
 install Ollama or download Qwen models. The first speech-enabled job downloads a
