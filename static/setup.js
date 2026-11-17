@@ -19,6 +19,7 @@
         <section data-panel="0">
           <h3>A few checks before your first clip</h3>
           <p>Snap Ninja processes video on this computer. Start with the required tools, then add local AI if you want it.</p>
+          <p id="setup-installed-note" hidden>Snap Ninja Setup handles the required tools. Add optional AI models whenever you need them.</p>
           <dl class="setup-checks">
             <div><dt>Python <span>Runs Snap Ninja</span></dt><dd data-check="python">Checking…</dd></div>
             <div><dt>FFmpeg &amp; FFprobe <span>Required for cutting, audio and captions</span></dt><dd data-check="media">Checking…</dd></div>
@@ -125,6 +126,8 @@
       const res = await fetch("/api/setup", { signal: AbortSignal.timeout(10000) });
       if (!res.ok) throw new Error("Connection failed");
       checks = await res.json();
+      el("#setup-installed-note").hidden = !checks.packaged;
+      el("[data-panel='0'] .setup-help").hidden = Boolean(checks.packaged && checks.ffmpeg && checks.ffprobe && checks.runtime);
       status("python", true, checks.python, "Missing");
       status("media", checks.ffmpeg && checks.ffprobe, "Ready", "Install required");
       status("runtime", checks.runtime, "Ready", "Not detected");
@@ -133,7 +136,9 @@
       const media = checks.ffmpeg && checks.ffprobe;
       el("#setup-summary-title").textContent = media ? "Ready for your first clip" : "Install the video tools first";
       el("#setup-summary").textContent = !media
-        ? "FFmpeg and FFprobe are required. You can explore the workspace now, then return to System to finish setup."
+        ? checks.packaged
+          ? "Video tools are missing. Run Snap Ninja Setup again to repair the installation. Your saved jobs stay in place."
+          : "FFmpeg and FFprobe are required. You can explore the workspace now, then return to System to finish setup."
         : checks.ollama && (checks.fast || checks.smart || (checks.advanced && el("#setup-model").value === "qwen3.8:27b"))
           ? "Video tools and local AI are ready. Start with a short video to check the result on your computer."
           : "Video tools are ready. You can start with basic highlight detection and add Ollama and a text model later.";

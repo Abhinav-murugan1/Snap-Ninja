@@ -30,7 +30,10 @@ def selected_files() -> list[Path]:
     items += [ROOT / "static" / name for name in STATIC_FILES]
     items += [p for p in (ROOT / "tests").iterdir() if p.is_file() and p.suffix in {".py", ".js"}]
     items += [ROOT / "tools" / name for name in
-              ("make_shortcuts.ps1", "make_icon.py", "pick_output.py", "preview_ui.py", "prepare_release.py")]
+              ("make_shortcuts.ps1", "make_icon.py", "pick_output.py", "preview_ui.py", "prepare_release.py",
+               "build_windows.py", "test_packaged.py")]
+    items += [ROOT / "packaging" / name for name in
+              ("requirements-build.txt", "snap_ninja.spec", "windows.iss", "install_media.ps1")]
     items += [p for p in (ROOT / "docs").rglob("*") if p.is_file() and p.suffix in {".md", ".png"}]
     items += [p for p in (ROOT / ".github").rglob("*") if p.is_file() and p.suffix in {".md", ".yml"}]
     return sorted(set(items))

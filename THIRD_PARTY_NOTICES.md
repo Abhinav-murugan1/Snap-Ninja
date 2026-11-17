@@ -15,8 +15,18 @@ retain their own licenses. Installing Snap Ninja does not relicense dependencies
 
 - Python dependencies are listed in `requirements.txt` and `requirements-gpu.txt`.
   Their licenses are supplied by their respective packages.
-- FFmpeg is installed separately. Its licensing depends on the distribution and
-  enabled build components; see [FFmpeg legal information](https://ffmpeg.org/legal.html).
+- Source installations use a separately installed FFmpeg. The Windows installer
+  downloads Gyan's essentials build directly from its distributor; that build is
+  GPLv3. Its archive's license and documentation are retained alongside the tools.
+  The media executables are not embedded in the Snap Ninja installer. See
+  [the distributor and sources](https://www.gyan.dev/ffmpeg/builds/) and
+  [FFmpeg legal information](https://ffmpeg.org/legal.html).
+- Desktop bundles include Python and Python packages with their original licenses.
+  Build-generated `licenses/python-licenses.json` contains dependency notices and
+  license text, and `licenses/payload-manifest.json` records downloaded payloads.
+  Node.js is bundled with its upstream `LICENSE` file under `vendor/node`.
+- Microsoft WebView2 uses Microsoft's distribution terms. Setup includes Microsoft's
+  signed Evergreen bootstrapper and invokes it only if the runtime is missing.
 - Whisper, Qwen and Ollama model weights are downloaded separately and are not
   bundled in this repository. Review the specific model's license before use or
   redistribution.

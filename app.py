@@ -14,7 +14,9 @@ from urllib.parse import urlsplit
 from flask import Flask, abort, jsonify, request, send_from_directory
 
 from clipper.env import claude_configured, load_env
+from clipper.paths import configure_runtime, data_root, frozen, picker_command, resource_root
 
+configure_runtime()
 load_env()  # ANTHROPIC_API_KEY from .env, before anything creates a client
 
 import threading  # noqa: E402
@@ -28,11 +30,11 @@ from clipper.options import Options
 from clipper.output import clips_directory, validate_destination
 from clipper.pipeline import MUSIC_DIR
 
-ROOT = Path(__file__).resolve().parent
+ROOT = data_root()
 UPLOADS = ROOT / "uploads"
-STATIC = ROOT / "static"
-UPLOADS.mkdir(exist_ok=True)
-MUSIC_DIR.mkdir(exist_ok=True)
+STATIC = resource_root() / "static"
+UPLOADS.mkdir(parents=True, exist_ok=True)
+MUSIC_DIR.mkdir(parents=True, exist_ok=True)
 
 VIDEO_EXTS = {".mp4", ".mov", ".mkv", ".webm", ".avi", ".m4v", ".flv", ".ts", ".wmv", ".mpg", ".mpeg"}
 
@@ -71,6 +73,11 @@ def security_headers(response):
     return response
 
 
+@app.get("/api/desktop-instance")
+def desktop_instance():
+    return jsonify(app="Snap Ninja", data_root=str(ROOT.resolve()))
+
+
 @app.get("/api/setup")
 def setup_status():
     """Read-only checks: never download models or start an installer."""
@@ -82,7 +89,7 @@ def setup_status():
         ollama = True
     except brain.BrainError:
         models, ollama = set(), False
-    return jsonify(python=".".join(map(str, sys.version_info[:3])),
+    return jsonify(packaged=frozen(), python=".".join(map(str, sys.version_info[:3])),
                    ffmpeg=bool(shutil.which("ffmpeg")), ffprobe=bool(shutil.which("ffprobe")),
                    runtime=bool(shutil.which("node") or shutil.which("deno")),
                    ollama=ollama, fast=brain.DEFAULT_MODEL in models,
@@ -114,16 +121,22 @@ def output_destination():
 def browse_output():
     """Use an isolated native picker so Tk never runs in a Flask worker thread."""
     import subprocess
+    import tempfile
 
     if not _folder_picker_lock.acquire(blocking=False):
         return jsonify(error="A folder picker is already open."), 409
     try:
-        proc = subprocess.run([sys.executable, str(ROOT / "tools" / "pick_output.py")],
-                              capture_output=True, text=True, encoding="utf-8", timeout=300,
-                              creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
-        if proc.returncode:
-            return jsonify(error="The folder picker is unavailable. Paste a folder path instead."), 503
-        path = json.loads(proc.stdout).get("path", "")
+        # Windowed executables have no stdout. A private temporary result file
+        # also avoids re-launching the desktop app as though it were Python.
+        with tempfile.TemporaryDirectory(prefix="snap-ninja-picker-") as folder:
+            result = Path(folder) / "result.json"
+            proc = subprocess.run(picker_command(result),
+                                  capture_output=True, text=True, encoding="utf-8", timeout=300,
+                                  creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0))
+            if proc.returncode:
+                return jsonify(error="The folder picker is unavailable. Paste a folder path instead."), 503
+            raw = result.read_text(encoding="utf-8") if result.exists() else proc.stdout
+            path = json.loads(raw).get("path", "")
         return jsonify(path=path, cancelled=not bool(path))
     except (OSError, ValueError, subprocess.TimeoutExpired):
         return jsonify(error="The folder picker could not finish. Paste a folder path instead."), 503

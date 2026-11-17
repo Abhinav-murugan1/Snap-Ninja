@@ -14,8 +14,9 @@ from .options import Options
 from .output import clips_directory
 from .render import render_clip
 from .transcribe import transcribe
+from .paths import data_root
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = data_root()
 MUSIC_DIR = ROOT / "music"
 
 # stage -> (start %, end %)

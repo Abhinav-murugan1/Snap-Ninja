@@ -18,3 +18,8 @@ release/
 backups/
 music/*
 !music/.gitkeep
+build/
+dist/
+packaging/vendor/
+packaging/generated.iss
+.build-venv/

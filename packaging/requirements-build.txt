@@ -1,0 +1,3 @@
+# Use an isolated build environment; never build from a user's populated venv.
+pyinstaller>=6.16,<7
+pip-licenses>=5,<6

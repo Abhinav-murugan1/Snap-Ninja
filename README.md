@@ -43,6 +43,26 @@ or user job history are included.
 
 ## Install and run
 
+### Windows desktop installer
+
+The desktop installer is being prepared; a verified installer has not yet been
+published. Once available from [Releases](https://github.com/Abhinav-murugan1/snap-ninja/releases),
+users will:
+
+1. Download **SnapNinja-Setup-VERSION-x64.exe** and open it.
+2. Follow Setup. It installs the app, downloads video tools and installs Microsoft
+   WebView2 if missing. Keep an internet connection active during installation.
+3. Select **Launch Snap Ninja**, or open **Snap Ninja** from the Start menu or desktop.
+
+The installed app opens in its own window. Python and Node.js are included;
+users do not need to run batch files, create shortcuts manually or open a browser.
+Optional AI models are configured separately in the in-app guide. The first
+transcription downloads its speech model automatically.
+
+Installer builds and validation are described in [Building the Windows installer](docs/windows-installer.md).
+
+### Run from source (developers)
+
 **Windows is the primary desktop target.** The browser/CLI code is portable, but full
 macOS/Linux workflows have not been verified. Local validation used Windows and Python 3.13.
 
@@ -66,8 +86,7 @@ macOS/Linux workflows have not been verified. Local validation used Windows and 
 | Open the desktop app after creating shortcuts | The **Snap Ninja** shortcut |
 | Use the browser again on later launches | `run.bat` |
 
-Snap Ninja currently runs from its extracted source folder; there is no standalone
-installer or packaged `.exe`. Keep the folder in place so its shortcuts continue to work.
+When running from source, keep the extracted folder in place so its shortcuts continue to work.
 
 The launcher creates `.venv` and installs the base dependencies on its first run.
 It needs internet access and can take several minutes. An NVIDIA GPU and Ollama are

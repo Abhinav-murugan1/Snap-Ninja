@@ -7,6 +7,7 @@ Start it from the Start menu or the desktop shortcut (make them with make_shortc
 from __future__ import annotations
 
 import ctypes
+import json
 import logging
 import os
 import socket
@@ -15,9 +16,10 @@ import threading
 import time
 import urllib.request
 from pathlib import Path
+from clipper.paths import configure_runtime, data_root, resource_root
 
-ROOT = Path(__file__).resolve().parent
-ICON = ROOT / "static" / "snap-ninja-v1.ico"
+ROOT = data_root()
+ICON = resource_root() / "static" / "snap-ninja-v1.ico"
 TITLE = "Snap Ninja"
 PREFERRED_PORT = 7860
 
@@ -29,7 +31,7 @@ _kernel32 = ctypes.windll.kernel32
 def _log_to_file() -> None:
     """No console in the app: everything that would be printed goes to logs/clipper.log."""
     logs = ROOT / "logs"
-    logs.mkdir(exist_ok=True)
+    logs.mkdir(parents=True, exist_ok=True)
     path = logs / "clipper.log"
     if path.exists() and path.stat().st_size > 5_000_000:
         path.replace(logs / "clipper.old.log")
@@ -54,9 +56,11 @@ def _already_running() -> bool:
 
 def _clipper_at(port: int) -> bool:
     try:
-        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/status", timeout=2) as r:
-            return r.status == 200
-    except OSError:
+        with urllib.request.urlopen(f"http://127.0.0.1:{port}/api/desktop-instance", timeout=2) as r:
+            data = json.load(r)
+            return (isinstance(data, dict) and data.get("app") == TITLE
+                    and Path(data.get("data_root", "")).resolve() == ROOT.resolve())
+    except (OSError, ValueError, TypeError):
         return False
 
 
@@ -77,6 +81,7 @@ def _free_port() -> int:
 
 # ------------------------------------------------------------------ app
 def main() -> None:
+    configure_runtime()
     if _already_running():
         return
     _log_to_file()
@@ -154,4 +159,22 @@ def main() -> None:
 
 
 if __name__ == "__main__":
-    main()
+    import multiprocessing
+    multiprocessing.freeze_support()
+    if len(sys.argv) == 3 and sys.argv[1] == "--pick-output":
+        from tools.pick_output import main as pick_folder
+        sys.argv = [sys.argv[0], sys.argv[2]]
+        pick_folder()
+    elif len(sys.argv) == 3 and sys.argv[1] == "--self-test":
+        from clipper.packaged_check import run
+        sys.exit(run(Path(sys.argv[2])))
+    else:
+        try:
+            main()
+        except Exception:
+            import traceback
+            ROOT.mkdir(parents=True, exist_ok=True)
+            (ROOT / "startup-error.log").write_text(traceback.format_exc(), encoding="utf-8")
+            _user32.MessageBoxW(None, "Snap Ninja could not start. Details were saved to:\n" +
+                               str(ROOT / "startup-error.log"), TITLE, 0x10)
+            sys.exit(1)

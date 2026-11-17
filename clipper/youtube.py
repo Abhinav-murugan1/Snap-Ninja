@@ -9,8 +9,9 @@ import json
 import threading
 from pathlib import Path
 from typing import Callable
+from .paths import data_root
 
-ROOT = Path(__file__).resolve().parent.parent / "youtube"
+ROOT = data_root() / "youtube"
 CLIENT = ROOT / "client_secret.json"
 TOKEN = ROOT / "token.json"
 SCOPES = ["https://www.googleapis.com/auth/youtube.upload", "https://www.googleapis.com/auth/youtube.readonly"]
@@ -35,7 +36,7 @@ def save_client_file(raw: bytes) -> None:
             raise YouTubeError("This is a “Web application” client. Create an OAuth client of type “Desktop app” "
                                "in Google Cloud and add that file instead.")
         raise YouTubeError("This doesn't look like an OAuth client file (no “installed” section).")
-    ROOT.mkdir(exist_ok=True)
+    ROOT.mkdir(parents=True, exist_ok=True)
     CLIENT.write_text(json.dumps(data), encoding="utf-8")
     TOKEN.unlink(missing_ok=True)  # a new client means signing in again
     _state.update(channel=None, error="")

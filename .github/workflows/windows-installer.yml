@@ -1,0 +1,60 @@
+name: Windows installer
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Installer version (for example 0.1.0)
+        required: true
+        default: '0.1.0'
+permissions:
+  contents: read
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 60
+    env:
+      SNAP_NINJA_DATA_DIR: ${{ runner.temp }}\snap-ninja-build-data
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          architecture: x64
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install build tools
+        run: |
+          python -m pip install -r requirements.txt -r packaging/requirements-build.txt
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          choco install innosetup --yes --no-progress
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Run regression checks
+        run: |
+          python -m unittest discover -s tests -v
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node --test tests/youtube-guide.test.js
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Build and check executable
+        env:
+          INSTALLER_VERSION: ${{ inputs.version }}
+        run: python tools/build_windows.py --version "$env:INSTALLER_VERSION"
+      - name: Install into a temporary folder and check installed app
+        shell: powershell
+        run: |
+          $setup = Get-ChildItem dist/installer/*-x64.exe | Select-Object -First 1
+          $destination = Join-Path $env:RUNNER_TEMP 'SnapNinjaInstalled'
+          $setupArgs = @('/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART',('/DIR="' + $destination + '"'),('/LOG="' + $env:RUNNER_TEMP + '\snap-ninja-install.log"'))
+          $process = Start-Process -FilePath $setup.FullName -ArgumentList $setupArgs -PassThru -Wait -WindowStyle Hidden
+          if ($process.ExitCode -ne 0) { throw "Installer failed: $($process.ExitCode)" }
+          python tools/test_packaged.py "$destination\Snap Ninja.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: SnapNinja-Windows-Installer
+          path: |
+            dist/installer/*.exe
+            dist/installer/*.sha256
+            packaging/vendor/payload-manifest.json
+          if-no-files-found: error

@@ -2,7 +2,33 @@
 
 [Back to README](../README.md)
 
-## Requirements
+## Desktop installer (Windows x64)
+
+A verified installer has not yet been published. Once one is available, download
+`SnapNinja-Setup-VERSION-x64.exe` from the project's GitHub Releases page, open it,
+and follow Setup. Leave the internet connected while it downloads the video tools
+and installs WebView2 if needed. Then choose **Launch Snap Ninja**.
+
+On later launches, open **Snap Ninja** from the Start menu or its desktop shortcut.
+No terminal, batch file, separate Python installation or browser page is required.
+The installer includes Python, the application dependencies and Node.js. It obtains
+FFmpeg/FFprobe directly from their distributor and checks the archive's SHA-256.
+
+Optional Ollama models and Google channel authorization remain separate choices
+inside **Setup guide**. The first transcription downloads its Whisper model.
+The standard installer uses CPU transcription without requiring CUDA installation;
+the existing developer GPU installation remains available below.
+
+The app installs for the current Windows account. Its jobs, uploads, music,
+feedback, Google connection, settings, model cache and logs use
+`%LOCALAPPDATA%\SnapNinja`. A custom output folder is still supported.
+Updates replace program files; uninstalling leaves user data and finished clips
+in place. Source installations keep their existing folders and are not moved or
+imported automatically.
+
+Maintainers: see [installer build and validation](windows-installer.md).
+
+## Source installation requirements (developers)
 
 - Windows 10/11 for the desktop window and Windows launcher.
 - Python 3.10 or later; Python 3.13 was used for local validation.
@@ -16,7 +42,7 @@
 The browser/CLI portions may work on other systems, but full macOS/Linux workflows
 have not been verified. `desktop.py` and the shortcut scripts target Windows.
 
-## Windows installation
+## Windows source installation
 
 1. Install Python from https://www.python.org/downloads/ and enable **Add Python to PATH**.
 2. Download FFmpeg from https://ffmpeg.org/download.html. Extract a Windows build
@@ -35,8 +61,8 @@ have not been verified. `desktop.py` and the shortcut scripts target Windows.
 6. The launcher opens http://127.0.0.1:7860. If the browser opens before the server
    is ready, refresh after setup finishes. Follow **Setup guide**.
 
-There is no separate installer or packaged `.exe` at present. `run.bat` performs
-the initial Python dependency setup and starts the app; Python and FFmpeg must
+For a source checkout, `run.bat` performs the initial Python dependency setup
+and starts the app; Python and FFmpeg must
 already be installed. Extract the ZIP before running it and keep the project folder
 in a permanent location if you plan to create shortcuts.
 

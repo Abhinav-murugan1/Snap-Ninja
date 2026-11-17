@@ -5,8 +5,9 @@ import json
 import threading
 import time
 from pathlib import Path
+from .paths import data_root
 
-ROOT = Path(__file__).resolve().parent.parent / "feedback"
+ROOT = data_root() / "feedback"
 FILE = ROOT / "votes.json"
 _lock = threading.Lock()
 

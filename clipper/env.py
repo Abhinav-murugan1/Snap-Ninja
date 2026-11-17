@@ -6,8 +6,9 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
+from .paths import data_root
 
-ENV_FILE = Path(__file__).resolve().parent.parent / ".env"
+ENV_FILE = data_root() / ".env"
 
 
 def load_env(path: Path = ENV_FILE) -> None:
