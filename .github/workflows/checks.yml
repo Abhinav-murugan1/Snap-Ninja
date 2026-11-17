@@ -1,0 +1,24 @@
+name: Checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.13'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg
+      - run: python -m pip install -r requirements.txt
+      - run: python -m compileall -q app.py desktop.py cli.py clipper tools tests
+      - run: python -m unittest discover -s tests -v
+      - run: node --check static/app.js && node --check static/setup.js && node --check static/output.js && node --check static/youtube-guide.js
+      - run: node --test tests/youtube-guide.test.js

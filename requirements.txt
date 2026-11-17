@@ -1,0 +1,13 @@
+faster-whisper>=1.2
+ctranslate2>=4.5
+# OpenCV 5 dropped the Haar cascade face detector used for shorts framing
+opencv-python-headless>=4.10,<5
+numpy>=2.0
+flask>=3.0
+anthropic>=2.0
+yt-dlp[default,curl-cffi]>=2026.1
+google-api-python-client>=2.100
+google-auth-oauthlib>=1.2
+google-auth-httplib2>=0.2
+send2trash>=1.8
+pywebview>=5

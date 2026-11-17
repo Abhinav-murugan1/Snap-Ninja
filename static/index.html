@@ -1,0 +1,398 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Snap Ninja</title>
+<meta name="description" content="Snap Ninja turns long videos and live streams into captioned clips. Run it on your own computer.">
+<link rel="stylesheet" href="/static/app.css">
+<link rel="icon" type="image/png" href="/static/snap-ninja.png">
+</head>
+<body>
+<a class="skip-link" href="#workspace">Skip to workspace</a>
+<header class="bar">
+  <a class="mark" href="/" aria-label="Snap Ninja home"><img src="/static/snap-ninja.png" width="36" height="36" alt=""><span>Snap Ninja</span></a>
+  <span class="app-context">Video workspace</span>
+  <button id="setup-open" class="ghost small" type="button">Setup guide</button>
+  <div class="recent">
+    <button id="recent-btn" class="recent-btn" type="button" aria-expanded="false" aria-controls="recent-menu">
+      Previous jobs <span class="recent-count" id="recent-count"></span>
+    </button>
+    <div id="recent-menu" class="recent-menu" hidden>
+      <p class="recent-total" id="recent-total" aria-live="polite"></p>
+      <ul id="recent-list" class="recent-list" aria-label="Previous jobs"></ul>
+      <p class="recent-empty" id="recent-empty" hidden>Nothing yet. Jobs you start show up here.</p>
+    </div>
+  </div>
+</header>
+
+<main id="workspace" tabindex="-1">
+    <div class="mode" role="radiogroup" aria-label="Snap Ninja modes">
+      <label><input type="radio" name="mode" value="long" checked> <span>Find highlights</span></label>
+      <label><input type="radio" name="mode" value="ready"> <span>Caption clips</span></label>
+      <label><input type="radio" name="mode" value="dvr"> <span>Live editor</span></label>
+      <label><input type="radio" name="mode" value="chat"> <span>Chat highlights</span></label>
+    </div>
+  <!-- ============ New job ============ -->
+  <section id="new-job" class="new-job">
+    <h1 class="lede" id="lede">Find the moments worth keeping.</h1>
+
+    <div id="drop" class="drop" tabindex="0" role="button" aria-describedby="drop-hint">
+      <input id="file" type="file" accept="video/*,.mkv,.flv,.ts" hidden>
+      <div class="ruler" aria-hidden="true"><span>0:00</span><span>0:30</span><span>1:00</span><span>1:30</span><span>2:00</span><span>2:30</span><span>3:00</span></div>
+      <div class="drop-track">
+        <span class="bracket in" aria-hidden="true"></span>
+        <div class="drop-inner">
+          <p class="drop-title" id="drop-title">Choose a video or drop it here</p>
+          <p class="drop-hint" id="drop-hint">MP4, MOV, MKV, WEBM. Hours-long files are fine.</p>
+        </div>
+        <span class="bracket out" aria-hidden="true"></span>
+      </div>
+    </div>
+
+    <div class="path-row">
+      <label for="path" id="path-label">Or paste a video link (YouTube, Kick, Twitch, including live streams) or a file path on this computer</label>
+      <div class="path-go">
+        <input id="path" type="text" inputmode="url" placeholder="https://www.youtube.com/watch?v=…   or   D:\Streams\full stream.mp4" spellcheck="false">
+        <button id="start" class="primary" type="button" disabled>Find the best moments</button>
+      </div>
+      <p id="form-error" class="error" role="alert"></p>
+    </div>
+
+    <div class="output-destination">
+      <div><span class="output-label">Save clips to</span><p id="output-display">App folder (jobs)</p></div>
+      <button id="output-change" type="button" class="ghost small">Change output folder</button>
+      <input id="output-dir" type="hidden" name="output_dir" form="settings" value="">
+    </div>
+    <h2 class="settings-head">Output settings</h2>
+    <form id="settings" class="settings" onsubmit="return false">
+      <fieldset id="clips-fields">
+        <legend>Clips</legend>
+        <label>Look for
+          <select name="hype_mode">
+            <option value="balanced" selected>Best moments overall</option>
+            <option value="hype">Hype and loud moments</option>
+          </select>
+        </label>
+        <label>How many
+          <select name="num_clips">
+            <option value="0" selected>Every good moment (automatic)</option>
+            <option value="3">At most 3</option>
+            <option value="5">At most 5</option>
+            <option value="10">At most 10</option>
+            <option value="20">At most 20</option>
+          </select>
+        </label>
+        <label>Shortest (s) <input name="min_len" type="number" min="5" max="170" value="15"></label>
+        <label>Longest (s) <input name="max_len" type="number" min="10" max="180" value="60"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Formats</legend>
+        <label class="check"><input name="make_shorts" type="checkbox" checked> Shorts, 9:16</label>
+        <label class="check"><input name="make_landscape" type="checkbox" checked> Original shape</label>
+        <label>Shorts framing
+          <select name="shorts_framing">
+            <option value="auto" selected>Follow face, else zoom to center</option>
+            <option value="face">Always follow face</option>
+            <option value="zoom">Zoom to center (gameplay)</option>
+            <option value="blur">Fit whole frame over blurred fill</option>
+            <option value="center">Center crop</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Captions</legend>
+        <label class="check"><input name="captions" type="checkbox" checked> Word-by-word captions</label>
+        <label class="check"><input name="title_overlay" type="checkbox" checked> Hook title on shorts</label>
+        <label>Words on screen <input name="caption_words" type="number" min="1" max="8" value="3"></label>
+        <div class="swatches">
+          <label>Text <input name="caption_color" type="color" value="#ffffff"></label>
+          <label>Spoken word <input name="highlight_color" type="color" value="#ffe600"></label>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Music</legend>
+        <label class="check"><input name="music" type="checkbox" checked> Background music</label>
+        <label>Track
+          <select name="music_track" id="music-track">
+            <option value="">Random from music folder</option>
+          </select>
+        </label>
+        <label class="file-pick">Or upload a track <input id="music-file" type="file" accept="audio/*"></label>
+        <label>Volume <input name="music_volume" type="range" min="0" max="0.6" step="0.02" value="0.18"></label>
+        <label class="check"><input name="duck" type="checkbox" checked> Lower music under speech</label>
+      </fieldset>
+
+      <details class="advanced">
+        <summary>Advanced</summary>
+        <div class="adv-grid">
+          <label>Speech model
+            <select name="whisper_model">
+              <option value="auto" selected>Automatic (best for this computer)</option>
+              <option value="large-v3-turbo">large-v3-turbo (GPU)</option>
+              <option value="large-v3">large-v3 (slowest, most accurate)</option>
+              <option value="medium">medium</option>
+              <option value="small">small (fast on CPU)</option>
+              <option value="base">base</option>
+            </select>
+          </label>
+          <label>Language <input name="language" type="text" placeholder="Detect automatically" maxlength="5"></label>
+          <label class="check"><input name="use_brain" type="checkbox" checked> Understand videos with local AI (free, runs on this PC)</label>
+          <label>Local AI
+            <select name="brain_model">
+              <option value="auto" selected>Automatic (best for this PC)</option>
+              <option value="qwen2.5:14b">Smart (14B, needs 12 GB GPU to be quick)</option>
+              <option value="qwen2.5:7b">Fast (7B)</option>
+              <option value="qwen3.8:27b">Qwen 3.8 (27B, high-memory computers)</option>
+            </select>
+          </label>
+          <label class="check"><input name="use_vision" type="checkbox" checked> Look at the video frames too</label>
+          <label class="check"><input name="use_review" type="checkbox" checked> Editor review of every clip</label>
+          <label class="check"><input name="use_llm" type="checkbox" checked> Let Claude pick moments from the transcript</label>
+          <label>Caption font <input name="caption_font" type="text" value="Arial Black"></label>
+          <label>Live: clip every (min) <input name="live_part_minutes" type="number" min="2" max="60" value="10"></label>
+          <label>Live: clips per part <input name="live_clips_per_part" type="number" min="1" max="10" value="2"></label>
+          <label>Live: stop after (hours) <input name="live_max_hours" type="number" min="0.5" max="24" step="0.5" value="4"></label>
+        </div>
+        <p class="note" id="env-note"></p>
+      </details>
+
+    </form>
+  </section>
+
+  <!-- ============ Job view ============ -->
+  <section id="job" class="job" hidden>
+    <div class="job-head">
+      <div>
+        <h2 id="job-name" class="job-name"></h2>
+        <p id="job-meta" class="job-meta"></p>
+        <p id="job-output" class="job-meta"></p>
+        <p class="source-row">
+          <button id="del-src" class="link danger" type="button" hidden></button>
+          <span id="src-note" class="src-note"></span>
+        </p>
+      </div>
+      <div class="job-buttons">
+        <button id="open-folder" class="ghost" type="button" hidden>Open clips folder</button>
+        <button id="another" class="ghost" type="button">Clip another video</button>
+      </div>
+    </div>
+
+    <div id="live" class="live" hidden>
+      <p class="live-state"><span class="dot" aria-hidden="true"></span><span id="live-text"></span></p>
+      <button id="stop-live" class="ghost" type="button">Stop recording</button>
+    </div>
+
+    <section id="dvr" class="dvr" hidden aria-label="Cut clips from the live stream">
+      <video id="dvr-video" class="dvr-video" controls playsinline preload="auto"></video>
+      <div class="dvr-row">
+        <span class="dvr-now">At <strong id="dvr-time">0:00</strong> of <span id="dvr-total">0:00</span> recorded</span>
+        <button id="go-live" class="ghost small" type="button">Jump to live</button>
+      </div>
+      <div class="dvr-row marks">
+        <button id="mark-in" class="ghost" type="button">Mark start <kbd>I</kbd></button>
+        <span class="mark-time" id="in-time" aria-live="polite">not set</span>
+        <button id="mark-out" class="ghost" type="button">Mark end <kbd>O</kbd></button>
+        <span class="mark-time" id="out-time" aria-live="polite">not set</span>
+        <button id="cut" class="primary" type="button" disabled>Cut clip <kbd>C</kbd></button>
+      </div>
+      <div class="dvr-row quick">
+        <span>Just saw something?</span>
+        <button class="ghost small" type="button" data-last="30">Clip the last 30 s</button>
+        <button class="ghost small" type="button" data-last="60">Last 1 min</button>
+        <button class="ghost small" type="button" data-last="120">Last 2 min</button>
+      </div>
+      <p id="dvr-msg" class="job-message" aria-live="polite"></p>
+      <div id="cuts-box" hidden>
+        <h3 class="cuts-head">Your clips</h3>
+        <ol id="cuts" class="cuts"></ol>
+      </div>
+    </section>
+
+    <section id="chatbox" class="chatbox" hidden aria-labelledby="chat-head">
+      <div class="chat-top">
+        <h3 class="chat-head" id="chat-head">Chat hype clipper</h3>
+        <p class="chat-state" id="chat-state" aria-live="polite"></p>
+      </div>
+      <svg id="chat-svg" class="chat-svg" viewBox="0 0 1000 100" preserveAspectRatio="none" role="img"
+           aria-label="Chat messages per 5 seconds along the recording; marked stretches were clipped"></svg>
+      <div class="chat-axis"><span>0:00</span><span id="chat-end"></span></div>
+      <p class="chat-help">Messages per 5 seconds. Green stretches are chat explosions, each clipped from 20 s
+        before chat started rising. Every clip below gets captions and a title, ready to upload.</p>
+      <ol id="chat-clips-list" class="cuts"></ol>
+    </section>
+
+    <ol class="stages" id="stages" aria-label="Progress">
+      <li data-stage="upload">Add video</li>
+      <li data-stage="transcribe">Transcribe</li>
+      <li data-stage="analyze">Find moments</li>
+      <li data-stage="render">Edit clips</li>
+    </ol>
+    <div class="meter" aria-hidden="true"><div id="meter-fill"></div></div>
+    <p id="job-message" class="job-message" aria-live="polite"></p>
+    <p id="job-error" class="error" role="alert"></p>
+
+    <figure class="map" id="map" hidden>
+      <div class="map-frame">
+        <svg id="map-svg" viewBox="0 0 600 100" preserveAspectRatio="none" role="img" aria-label="Hype level across the whole video, with chosen clips marked"></svg>
+        <div id="map-labels"></div>
+      </div>
+      <div class="map-axis"><span>0:00</span><span id="map-end"></span></div>
+      <figcaption>Hype across the whole video: shouting, crowd reactions, action bursts and loud spikes. Marked ranges are the clips, numbered by rank.</figcaption>
+    </figure>
+
+    <ol id="clips" class="clips"></ol>
+
+    <details class="log">
+      <summary>Activity log</summary>
+      <ol id="log"></ol>
+    </details>
+  </section>
+</main>
+
+<div id="toast" class="toast" role="status" hidden>
+  <span id="toast-text"></span>
+  <button id="toast-undo" type="button">Undo</button>
+</div>
+
+<template id="clip-tpl">
+  <li class="clip">
+    <div class="clip-media">
+      <video preload="none" controls playsinline></video>
+      <div class="pending">Editing…</div>
+    </div>
+    <div class="clip-body">
+      <p class="rank"></p>
+      <h3 class="title"></h3>
+      <p class="tc"></p>
+      <p class="hook"></p>
+      <p class="reason"></p>
+      <div class="actions"></div>
+      <div class="vote" role="group" aria-label="Rate this clip">
+        <button type="button" class="vote-up" aria-pressed="false" title="Good clip: show me more like this">👍 Good clip</button>
+        <button type="button" class="vote-down" aria-pressed="false" title="Bad clip: show me fewer like this">👎 Not for me</button>
+      </div>
+      <p class="yt-state" aria-live="polite"></p>
+      <p class="clip-edit-state" aria-live="polite"></p>
+    </div>
+  </li>
+</template>
+
+<dialog id="ed" class="yt ed" aria-labelledby="ed-heading">
+  <form method="dialog" id="ed-form">
+    <h2 id="ed-heading">Adjust clip</h2>
+    <video id="ed-video" class="ed-video" controls preload="auto" playsinline></video>
+    <div class="ed-track" id="ed-track" title="Click to jump there">
+      <div class="ed-range" id="ed-range"></div>
+      <div class="ed-head" id="ed-head"></div>
+    </div>
+    <p class="ed-scale"><span id="ed-win-a"></span><span id="ed-now"></span><span id="ed-win-b"></span></p>
+    <div class="ed-ends">
+      <fieldset class="ed-end">
+        <legend>Start <output id="ed-start"></output></legend>
+        <div class="ed-nudge" data-which="start">
+          <button type="button" class="ghost small" data-step="-5">−5 s</button>
+          <button type="button" class="ghost small" data-step="-1">−1 s</button>
+          <button type="button" class="ghost small" data-step="1">+1 s</button>
+          <button type="button" class="ghost small" data-step="5">+5 s</button>
+          <button type="button" class="ghost small" id="ed-set-start">Start where the player is</button>
+        </div>
+        <p class="ed-hint">Or click the line it should start on:</p>
+        <ol class="ed-lines" id="ed-lines-start"></ol>
+      </fieldset>
+      <fieldset class="ed-end">
+        <legend>End <output id="ed-end"></output></legend>
+        <div class="ed-nudge" data-which="end">
+          <button type="button" class="ghost small" data-step="-5">−5 s</button>
+          <button type="button" class="ghost small" data-step="-1">−1 s</button>
+          <button type="button" class="ghost small" data-step="1">+1 s</button>
+          <button type="button" class="ghost small" data-step="5">+5 s</button>
+          <button type="button" class="ghost small" id="ed-set-end">End where the player is</button>
+        </div>
+        <p class="ed-hint">Or click the last line it should keep:</p>
+        <ol class="ed-lines" id="ed-lines-end"></ol>
+      </fieldset>
+    </div>
+    <p class="ed-len" id="ed-len"></p>
+    <label>Title <input type="text" id="ed-title" maxlength="100"></label>
+    <label>Hook (the text on screen at the start of the short) <input type="text" id="ed-hook" maxlength="60"></label>
+    <p id="ed-error" class="error" role="alert"></p>
+    <div class="yt-buttons">
+      <button type="button" class="ghost" id="ed-play">Play the clip</button>
+      <button type="button" class="ghost" id="ed-cancel">Cancel</button>
+      <button type="button" class="primary" id="ed-save">Save and re-edit</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="del" class="yt" aria-labelledby="del-heading">
+  <form method="dialog">
+    <h2 id="del-heading">Delete original video?</h2>
+    <p id="del-text"></p>
+    <p id="del-error" class="error" role="alert"></p>
+    <div class="yt-buttons">
+      <button type="button" class="ghost" id="del-cancel">Keep it</button>
+      <button type="button" class="primary danger-fill" id="del-confirm">Delete</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="yt" class="yt" aria-labelledby="yt-heading">
+  <form method="dialog" id="yt-form">
+    <h2 id="yt-heading">Upload to YouTube</h2>
+    <details id="yt-guide" class="youtube-help">
+      <summary>First time? Set up YouTube uploads</summary>
+      <div data-youtube-guide="instructions"></div>
+    </details>
+
+    <div id="yt-setup" hidden>
+      <p id="yt-setup-text"></p>
+      <label class="file-pick" id="yt-client-row">Google OAuth client file (.json)
+        <input id="yt-client" type="file" accept=".json,application/json">
+      </label>
+      <button id="yt-signin" class="primary" type="button" hidden>Sign in with Google</button>
+    </div>
+
+    <div id="yt-fields" hidden>
+      <p class="yt-channel">Posting to <strong id="yt-channel"></strong>. <button id="yt-switch" type="button" class="link">Use a different channel</button></p>
+      <fieldset class="yt-kind">
+        <legend class="visually-hidden">Which version</legend>
+        <label class="check"><input type="radio" name="kind" value="short" checked> Short, 9:16</label>
+        <label class="check"><input type="radio" name="kind" value="landscape"> Original shape</label>
+      </fieldset>
+      <label>Title <span class="count" id="yt-title-count"></span>
+        <input id="yt-title" name="title" type="text" maxlength="100" required>
+      </label>
+      <label>Description
+        <textarea id="yt-desc" name="description" rows="7" maxlength="4900"></textarea>
+      </label>
+      <label>Tags, separated by commas
+        <input id="yt-tags" name="tags" type="text">
+      </label>
+      <label>Who can see it
+        <select id="yt-privacy" name="privacy">
+          <option value="public" selected>Public</option>
+          <option value="unlisted">Unlisted</option>
+          <option value="private">Private</option>
+        </select>
+      </label>
+    </div>
+
+    <p id="yt-error" class="error" role="alert"></p>
+    <div class="yt-buttons">
+      <button type="button" class="ghost" id="yt-cancel">Cancel</button>
+      <button type="button" class="primary" id="yt-upload" hidden>Upload to YouTube</button>
+    </div>
+  </form>
+</dialog>
+
+<footer class="app-footer"><span>&copy; 2026 Snap Ninja. Created by Abhinav Murugan.</span><span>Videos and clips are saved on this computer.</span></footer>
+<script src="/static/app.js"></script>
+<script src="/static/output.js"></script>
+<script src="/static/setup.js"></script>
+<script src="/static/youtube-guide.js"></script>
+</body>
+</html>

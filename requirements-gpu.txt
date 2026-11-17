@@ -1,0 +1,3 @@
+# Optional: lets Whisper run on an NVIDIA GPU (CUDA 12). Without these it falls back to CPU.
+nvidia-cublas-cu12
+nvidia-cudnn-cu12>=9,<10
