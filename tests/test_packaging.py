@@ -41,18 +41,29 @@ class InstallationPathsTests(unittest.TestCase):
 
     def test_installed_tools_and_model_cache_are_private(self):
         with tempfile.TemporaryDirectory() as folder:
-            base = Path(folder)
+            # Windows can give tempfile a short or redirected path. Start from
+            # the actual on-disk path and use an existing executable fixture.
+            base = Path(folder).resolve()
+            executable = base / "program" / "Snap Ninja.exe"
+            executable.parent.mkdir()
+            executable.touch()
+            ffmpeg = executable.parent / "dependencies" / "ffmpeg"
+            node = base / "assets" / "vendor" / "node"
+            ffmpeg.mkdir(parents=True)
+            node.mkdir(parents=True)
             env = {"PATH": "existing-tools", "LOCALAPPDATA": str(base)}
             with patch.dict(os.environ, env, clear=True), \
                  patch.object(paths, "frozen", return_value=True), \
                  patch.object(paths, "resource_root", return_value=base / "assets"), \
-                 patch.object(sys, "executable", str(base / "program/Snap Ninja.exe")):
+                 patch.object(sys, "executable", str(executable)):
                 paths.configure_runtime()
                 self.assertTrue(paths.data_root().is_dir())
-                self.assertEqual(os.environ["HF_HOME"], str(base / "SnapNinja/models/huggingface"))
-                self.assertEqual([Path(p) for p in os.environ["PATH"].split(os.pathsep)[:2]],
-                                 [base / "program/dependencies/ffmpeg", base / "assets/vendor/node"])
-                self.assertTrue(os.environ["PATH"].endswith("existing-tools"))
+                self.assertEqual(Path(os.environ["HF_HOME"]).resolve(),
+                                 (base / "SnapNinja/models/huggingface").resolve())
+                path_entries = os.environ["PATH"].split(os.pathsep)
+                self.assertEqual(path_entries[2:], ["existing-tools"])
+                for actual, expected in zip(path_entries[:2], (ffmpeg, node), strict=True):
+                    self.assertTrue(Path(actual).samefile(expected), f"Expected {expected}, got {actual}")
 
     def test_frozen_picker_uses_helper_mode_instead_of_running_python_script(self):
         result = Path("result.json")
