@@ -10,6 +10,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 import urllib.request
 import zipfile
 
@@ -18,6 +19,10 @@ VENDOR = ROOT / "packaging/vendor"
 CACHE = ROOT / "build/downloads"
 MEDIA_BASE = "https://www.gyan.dev/ffmpeg/builds/"
 NODE_BASE = "https://nodejs.org/dist/latest-v22.x/"
+WEBVIEW_DOWNLOADS = (
+    ("Evergreen bootstrapper", "https://go.microsoft.com/fwlink/p/?LinkId=2124703"),
+    ("Evergreen standalone x64 installer", "https://go.microsoft.com/fwlink/?LinkId=2124701"),
+)
 
 
 def fetch(url: str) -> bytes:
@@ -56,6 +61,41 @@ def extract(archive: Path, target: Path) -> None:
         zipped.extractall(target)
 
 
+def prepare_webview() -> dict:
+    destination = VENDOR / "MicrosoftEdgeWebview2Setup.exe"
+    errors = []
+    with tempfile.TemporaryDirectory(prefix="webview-", dir=VENDOR) as temp:
+        candidate = Path(temp) / destination.name
+        for kind, url in WEBVIEW_DOWNLOADS:
+            print(f"Downloading Microsoft WebView2 {kind}", flush=True)
+            try:
+                digest = download(url, candidate)
+                with candidate.open("rb") as payload:
+                    if payload.read(2) != b"MZ":
+                        raise ValueError("Microsoft download did not return a Windows executable")
+                env = dict(os.environ, SNAP_NINJA_SIGNATURE_FILE=str(candidate))
+                verification = subprocess.run(
+                    ["powershell", "-NoProfile", "-NonInteractive", "-Command",
+                     "$ErrorActionPreference = 'Stop'; "
+                     "$signature = Get-AuthenticodeSignature -LiteralPath $env:SNAP_NINJA_SIGNATURE_FILE; "
+                     "$signer = $signature.SignerCertificate.Subject; "
+                     "Write-Output ('Authenticode: {0}; {1}; signer: {2}' -f $signature.Status, $signature.StatusMessage, $signer); "
+                     "if ($signature.Status -ne 'Valid' -or $signer -notmatch '(^|,\\s*)O=Microsoft Corporation(,|$)') { exit 1 }"],
+                    env=env, capture_output=True, text=True, errors="replace", timeout=120,
+                )
+                if verification.returncode:
+                    raise ValueError((verification.stdout + verification.stderr).strip()
+                                     or f"Signature check exited with code {verification.returncode}")
+                print(verification.stdout.strip(), flush=True)
+                candidate.replace(destination)
+                return {"url": url, "sha256": digest, "signature": "Microsoft Corporation", "package": kind}
+            except (OSError, ValueError, subprocess.TimeoutExpired) as error:
+                message = f"{kind}: {error}"
+                errors.append(message)
+                print(message, flush=True)
+    raise RuntimeError("Could not verify a Microsoft WebView2 installer:\n" + "\n".join(errors))
+
+
 def prepare_payloads() -> Path:
     VENDOR.mkdir(parents=True, exist_ok=True)
     CACHE.mkdir(parents=True, exist_ok=True)
@@ -87,22 +127,14 @@ def prepare_payloads() -> Path:
     if len(ffmpeg) != 1:
         raise RuntimeError("Unexpected FFmpeg archive structure")
 
-    webview_url = "https://go.microsoft.com/fwlink/p/?LinkId=2124703"
-    webview_path = VENDOR / "MicrosoftEdgeWebview2Setup.exe"
-    webview_hash = download(webview_url, webview_path)
-    # Fail closed if the downloaded executable isn't signed by Microsoft.
-    env = dict(os.environ, SNAP_NINJA_SIGNATURE_FILE=str(webview_path))
-    subprocess.run(["powershell", "-NoProfile", "-NonInteractive", "-Command",
-                    "$s = Get-AuthenticodeSignature -LiteralPath $env:SNAP_NINJA_SIGNATURE_FILE; "
-                    "if ($s.Status -ne 'Valid' -or $s.SignerCertificate.Subject -notmatch 'O=Microsoft Corporation') { exit 1 }"],
-                   env=env, check=True)
+    webview = prepare_webview()
     (ROOT / "packaging/generated.iss").write_text(
         f'#define MediaURL "{media_url}"\n#define MediaSHA256 "{media_hash}"\n', encoding="utf-8")
     (VENDOR / "payload-manifest.json").write_text(json.dumps({
         "node": {"url": NODE_BASE + name, "sha256": digest},
         "ffmpeg": {"url": media_url, "sha256": media_hash, "version": version,
                    "license": "GPL-3.0; downloaded from distributor during installation"},
-        "webview2": {"url": webview_url, "sha256": webview_hash, "signature": "Microsoft Corporation"},
+        "webview2": webview,
     }, indent=2), encoding="utf-8")
     return ffmpeg[0].parent
 

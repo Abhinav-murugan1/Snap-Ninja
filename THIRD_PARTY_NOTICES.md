@@ -26,7 +26,8 @@ retain their own licenses. Installing Snap Ninja does not relicense dependencies
   license text, and `licenses/payload-manifest.json` records downloaded payloads.
   Node.js is bundled with its upstream `LICENSE` file under `vendor/node`.
 - Microsoft WebView2 uses Microsoft's distribution terms. Setup includes Microsoft's
-  signed Evergreen bootstrapper and invokes it only if the runtime is missing.
+  signed Evergreen bootstrapper or x64 standalone installer and invokes it only if
+  the runtime is missing.
 - Whisper, Qwen and Ollama model weights are downloaded separately and are not
   bundled in this repository. Review the specific model's license before use or
   redistribution.

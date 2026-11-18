@@ -38,7 +38,10 @@ python -m venv .build-venv
 The result is `dist/installer/SnapNinja-Setup-0.1.0-x64.exe`, with a SHA-256 file.
 The helper requires internet access, obtains Node.js from nodejs.org and verifies
 its official checksum, obtains FFmpeg metadata and the verification build from
-gyan.dev, and verifies Microsoft's signature on the WebView2 bootstrapper. The
+gyan.dev, and verifies Microsoft's signature on the WebView2 bootstrapper. If the
+bootstrapper cannot be downloaded or verified, it tries Microsoft's signed x64
+standalone installer, which makes the Setup download larger. Both packages must
+pass the same signature check before they can be bundled. The
 selected URLs, versions and hashes are recorded in `packaging/vendor/payload-manifest.json`.
 The installer uses a versioned FFmpeg URL and the recorded hash instead of following
 a moving latest-release download on users' computers. If the distributor removes

@@ -2,6 +2,7 @@
 import hashlib
 import os
 from pathlib import Path
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -72,6 +73,25 @@ class InstallationPathsTests(unittest.TestCase):
 
 
 class BuildDownloadTests(unittest.TestCase):
+    def test_webview_falls_back_to_a_verified_microsoft_installer(self):
+        def stage_download(url, destination):
+            destination.write_bytes(b"MZ" + url.encode())
+            return hashlib.sha256(destination.read_bytes()).hexdigest()
+
+        with tempfile.TemporaryDirectory() as folder:
+            vendor = Path(folder)
+            with patch.object(build_windows, "VENDOR", vendor), \
+                 patch.object(build_windows, "download", side_effect=stage_download), \
+                 patch.object(build_windows.subprocess, "run", side_effect=[
+                     subprocess.CompletedProcess([], 1, "Authenticode: NotTrusted", ""),
+                     subprocess.CompletedProcess([], 0, "Authenticode: Valid", ""),
+                 ]):
+                manifest = build_windows.prepare_webview()
+            self.assertEqual(manifest["url"], build_windows.WEBVIEW_DOWNLOADS[1][1])
+            installed = vendor / "MicrosoftEdgeWebview2Setup.exe"
+            self.assertEqual(installed.read_bytes(), b"MZ" + manifest["url"].encode())
+            self.assertEqual(manifest["sha256"], hashlib.sha256(installed.read_bytes()).hexdigest())
+
     def test_payload_mismatch_never_creates_executable(self):
         with tempfile.TemporaryDirectory() as folder, patch.object(build_windows, "fetch", return_value=b"wrong"):
             destination = Path(folder) / "tool.exe"
