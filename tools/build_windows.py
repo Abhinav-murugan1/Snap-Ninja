@@ -74,9 +74,15 @@ def prepare_webview() -> dict:
                     if payload.read(2) != b"MZ":
                         raise ValueError("Microsoft download did not return a Windows executable")
                 env = dict(os.environ, SNAP_NINJA_SIGNATURE_FILE=str(candidate))
+                # GitHub runs this step under pwsh. Its module paths can point
+                # Windows PowerShell 5.1 at incompatible PowerShell 7 assemblies.
+                for key in list(env):
+                    if key.casefold() == "psmodulepath":
+                        del env[key]
                 verification = subprocess.run(
                     ["powershell", "-NoProfile", "-NonInteractive", "-Command",
                      "$ErrorActionPreference = 'Stop'; "
+                     "Import-Module (Join-Path $PSHOME 'Modules/Microsoft.PowerShell.Security/Microsoft.PowerShell.Security.psd1') -ErrorAction Stop; "
                      "$signature = Get-AuthenticodeSignature -LiteralPath $env:SNAP_NINJA_SIGNATURE_FILE; "
                      "$signer = $signature.SignerCertificate.Subject; "
                      "Write-Output ('Authenticode: {0}; {1}; signer: {2}' -f $signature.Status, $signature.StatusMessage, $signer); "

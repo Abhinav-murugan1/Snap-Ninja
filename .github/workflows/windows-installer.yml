@@ -1,5 +1,11 @@
 name: Windows installer
 on:
+  push:
+    branches: [main]
+    paths:
+      - tools/build_windows.py
+      - packaging/**
+      - .github/workflows/windows-installer.yml
   workflow_dispatch:
     inputs:
       version:
@@ -38,7 +44,7 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Build and check executable
         env:
-          INSTALLER_VERSION: ${{ inputs.version }}
+          INSTALLER_VERSION: ${{ inputs.version || '0.1.0' }}
         run: python tools/build_windows.py --version "$env:INSTALLER_VERSION"
       - name: Install into a temporary folder and check installed app
         shell: powershell
