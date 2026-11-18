@@ -12,8 +12,6 @@ jobs:
   build:
     runs-on: windows-2022
     timeout-minutes: 60
-    env:
-      SNAP_NINJA_DATA_DIR: ${{ runner.temp }}\snap-ninja-build-data
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -31,6 +29,8 @@ jobs:
           choco install innosetup --yes --no-progress
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Run regression checks
+        env:
+          SNAP_NINJA_DATA_DIR: ${{ runner.temp }}\snap-ninja-build-data
         run: |
           python -m unittest discover -s tests -v
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
